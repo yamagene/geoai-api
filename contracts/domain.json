@@ -1,0 +1,27 @@
+{
+  "$comment": "分類クラス・ジョブ状態・ジョブ種別の正本（spec.md 7 章）。各リポジトリの contracts/ はコピー。変更時は VERSION を +1 する。",
+  "classes": [
+    { "code": 0, "name": "unclassified", "labelJa": "未分類", "color": "#00000000", "systemOnly": true },
+    { "code": 1, "name": "paddy", "labelJa": "水田", "color": "#4FC3F7", "systemOnly": false },
+    { "code": 2, "name": "cropland", "labelJa": "畑", "color": "#FFD54F", "systemOnly": false },
+    { "code": 3, "name": "forest", "labelJa": "森林", "color": "#2E7D32", "systemOnly": false },
+    { "code": 4, "name": "urban", "labelJa": "市街地・建物", "color": "#E53935", "systemOnly": false },
+    { "code": 5, "name": "water", "labelJa": "水域", "color": "#1565C0", "systemOnly": false },
+    { "code": 6, "name": "grassland", "labelJa": "草地・荒地", "color": "#A1887F", "systemOnly": false }
+  ],
+  "jobStatuses": [
+    { "value": "queued", "description": "受付済み", "next": ["fetching", "preprocessing", "failed"] },
+    { "value": "fetching", "description": "画像検索・読込・合成中", "next": ["preprocessing", "failed"] },
+    { "value": "preprocessing", "description": "指数計算・学習データ作成中", "next": ["training", "predicting", "completed", "failed"] },
+    { "value": "training", "description": "学習・精度評価中", "next": ["predicting", "failed"] },
+    { "value": "predicting", "description": "推論中", "next": ["publishing", "failed"] },
+    { "value": "publishing", "description": "COG 変換・ポリゴン化・登録中", "next": ["completed", "failed"] },
+    { "value": "completed", "description": "完了", "next": [] },
+    { "value": "failed", "description": "失敗", "next": [] }
+  ],
+  "jobTypes": [
+    { "value": "train_and_predict", "description": "学習してから推論する（Phase 1）" },
+    { "value": "predict_only", "description": "既存モデルで推論のみ（Phase 2）" },
+    { "value": "import_labels", "description": "教師データの検証・取込（Phase 1）。状態は queued → preprocessing → completed / failed のみ使う" }
+  ]
+}

@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <!-- 依存ライブラリのバージョンを packages.lock.json で固定する（spec.md 2 章） -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+</Project>

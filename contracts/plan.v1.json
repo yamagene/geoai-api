@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GeoAI 実行計画 v1",
+  "$comment": "実行計画（spec.md 10 章）と道具の args（12 章、13 章）の正本。各リポジトリの contracts/ はコピー。変更時は VERSION を +1 する。",
+  "type": "object",
+  "required": ["schemaVersion", "jobType", "steps"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "jobType": { "enum": ["train_and_predict", "predict_only", "import_labels"] },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/step" }
+    }
+  },
+  "allOf": [
+    {
+      "$comment": "教師データ取込ジョブの計画は固定形（10 章）",
+      "if": { "properties": { "jobType": { "const": "import_labels" } }, "required": ["jobType"] },
+      "then": {
+        "properties": {
+          "steps": {
+            "minItems": 1,
+            "maxItems": 1,
+            "items": { "properties": { "tool": { "const": "import_labels" } } }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "resourceId": {
+      "$comment": "areaId・labelSetId。UUID か、CLI 用の固定値 \"local\"（spec.md 10 章、12.9）。API は DB に存在することも確認する",
+      "oneOf": [
+        { "type": "string", "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$" },
+        { "const": "local" }
+      ]
+    },
+    "period": {
+      "$comment": "時期（月）。\"01\"〜\"12\"",
+      "type": "string",
+      "pattern": "^(0[1-9]|1[0-2])$"
+    },
+    "emptyArgs": {
+      "type": "object",
+      "additionalProperties": false
+    },
+    "step": {
+      "oneOf": [
+        { "$ref": "#/$defs/searchImagery" },
+        { "$ref": "#/$defs/loadComposite" },
+        { "$ref": "#/$defs/computeIndices" },
+        { "$ref": "#/$defs/prepareTrainingData" },
+        { "$ref": "#/$defs/trainClassifier" },
+        { "$ref": "#/$defs/predict" },
+        { "$ref": "#/$defs/publishResult" },
+        { "$ref": "#/$defs/importLabels" }
+      ]
+    },
+    "searchImagery": {
+      "$comment": "12.2",
+      "type": "object",
+      "required": ["tool", "args"],
+      "additionalProperties": false,
+      "properties": {
+        "tool": { "const": "search_imagery" },
+        "args": {
+          "type": "object",
+          "required": ["areaId", "year", "periods"],
+          "additionalProperties": false,
+          "properties": {
+            "areaId": { "$ref": "#/$defs/resourceId" },
+            "year": {
+              "$comment": "上限（今年）は実行時に決まるため JSON Schema では表せない。各リポジトリのコードで確認する。",
+              "type": "integer",
+              "minimum": 2017
+            },
+            "periods": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 6,
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/period" }
+            }
+          }
+        }
+      }
+    },
+    "loadComposite": {
+      "$comment": "12.3",
+      "type": "object",
+      "required": ["tool", "args"],
+      "additionalProperties": false,
+      "properties": {
+        "tool": { "const": "load_composite" },
+        "args": { "$ref": "#/$defs/emptyArgs" }
+      }
+    },
+    "computeIndices": {
+      "$comment": "12.4。Phase 1 は NDVI のみ",
+      "type": "object",
+      "required": ["tool", "args"],
+      "additionalProperties": false,
+      "properties": {
+        "tool": { "const": "compute_indices" },
+        "args": {
+          "type": "object",
+          "required": ["indices"],
+          "additionalProperties": false,
+          "properties": {
+            "indices": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "enum": ["NDVI"] }
+            }
+          }
+        }
+      }
+    },
+    "prepareTrainingData": {
+      "$comment": "12.5",
+      "type": "object",
+      "required": ["tool", "args"],
+      "additionalProperties": false,
+      "properties": {
+        "tool": { "const": "prepare_training_data" },
+        "args": {
+          "type": "object",
+          "required": ["labelSetId"],
+          "additionalProperties": false,
+          "properties": {
+            "labelSetId": { "$ref": "#/$defs/resourceId" }
+          }
+        }
+      }
+    },
+    "trainClassifier": {
+      "$comment": "12.6。Phase 1 は random_forest のみ",
+      "type": "object",
+      "required": ["tool", "args"],
+      "additionalProperties": false,
+      "properties": {
+        "tool": { "const": "train_classifier" },
+        "args": {
+          "type": "object",
+          "required": ["method"],
+          "additionalProperties": false,
+          "properties": {
+            "method": { "enum": ["random_forest"] }
+          }
+        }
+      }
+    },
+    "predict": {
+      "$comment": "12.7",
+      "type": "object",
+      "required": ["tool", "args"],
+      "additionalProperties": false,
+      "properties": {
+        "tool": { "const": "predict" },
+        "args": { "$ref": "#/$defs/emptyArgs" }
+      }
+    },
+    "publishResult": {
+      "$comment": "12.8",
+      "type": "object",
+      "required": ["tool", "args"],
+      "additionalProperties": false,
+      "properties": {
+        "tool": { "const": "publish_result" },
+        "args": { "$ref": "#/$defs/emptyArgs" }
+      }
+    },
+    "importLabels": {
+      "$comment": "13 章",
+      "type": "object",
+      "required": ["tool", "args"],
+      "additionalProperties": false,
+      "properties": {
+        "tool": { "const": "import_labels" },
+        "args": {
+          "type": "object",
+          "required": ["labelSetId"],
+          "additionalProperties": false,
+          "properties": {
+            "labelSetId": { "$ref": "#/$defs/resourceId" }
+          }
+        }
+      }
+    }
+  }
+}
