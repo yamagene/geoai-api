@@ -12,3 +12,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "${{ inputs.greeting }}" # 入力パラメータ「greeting」の参照
+      - name: Super-Linter
+        uses: super-linter/super-linter@v8.7.0
