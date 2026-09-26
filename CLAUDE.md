@@ -27,14 +27,16 @@
 dotnet restore
 dotnet build
 dotnet test                                        # テスト（Testcontainers を使うため Docker が必要）
-dotnet run --project src/Api                       # ローカル起動（http://localhost:8080）
-dotnet ef migrations add <名前> --project src/Api.Infrastructure --startup-project src/Api
-dotnet ef database update --project src/Api.Infrastructure --startup-project src/Api
+dotnet run --project src/GeoaiApi                       # ローカル起動（http://localhost:8080）
+dotnet ef migrations add <名前> --project src/GeoaiApi --output-dir Data/Migrations
+dotnet ef database update --project src/GeoaiApi
 ```
 
 ## 規約
 
-- プロジェクト構成は spec.md 4.3 のとおり（Api / Api.Domain / Api.Infrastructure / Api.Application）。
+- プロジェクト構成は spec.md 4.3 のとおり（1 プロジェクト `src/GeoaiApi`。MVC の Controllers / Models 構成で、ビューは置かない）。
+- 画面は geoai-web が担当する。Razor ビュー・`wwwroot/` は作らない。
+- 手動での API 確認は、開発環境でのみ有効な Scalar（`http://localhost:8080/scalar`）を使う。本番では OpenAPI・Scalar を公開しない。
 - DB の名前はすべて snake_case（EFCore.NamingConventions）。主キーは時刻順 UUID。
 - **テナントの取得は必ず `ITenantContext` 経由**。EF Core のグローバルクエリフィルターで `tenant_id` を自動で絞り込む。`IgnoreQueryFilters()` は停止ジョブ回収以外で使わない。
 - 他テナントのリソースを指定されたら 404 を返す。
